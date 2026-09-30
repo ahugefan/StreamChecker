@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Twitch Live Checker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="top-bar">
+      <div class="stats">
+        <div class="stat">
+          <span class="label">Total Streamers</span>
+          <span class="value" id="totalStreamers">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Live Now</span>
+          <span class="value live" id="liveNow">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Last Refresh</span>
+          <span class="value" id="lastRefresh">--</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="resendShoutoutsBtn" title="Send a shoutout for every streamer currently live">Resend All Shoutouts</button>
+        <button id="refreshBtn">Refresh</button>
+        <button id="settingsBtn">Settings</button>
+      </div>
+    </header>
+
+    <div id="statusBanner" class="status-banner" hidden></div>
+
+    <main class="grid" id="streamGrid"></main>
+    <p id="offlineHiddenNote" class="offline-hidden-note" hidden></p>
+  </div>
+
+  <div id="settingsPanel" class="settings-panel">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button id="closeSettings" class="close-btn">✕</button>
+    </div>
+
+    <div class="settings-section">
+
+      <div class="credentials-box">
+        <h3>Twitch App Credentials</h3>
+        <p class="hint">From your own app at <span class="mono">dev.twitch.tv/console</span>.</p>
+        <input id="clientIdInput" type="text" placeholder="Client ID">
+        <input id="clientSecretInput" type="password" placeholder="Client Secret (leave blank to keep current)">
+        <button id="saveCredentialsBtn" class="file-btn">Save Credentials</button>
+        <p id="credentialsStatus" class="hint"></p>
+      </div>
+
+      <div class="credentials-box">
+        <h3>Automatic Shoutouts</h3>
+
+        <label class="toggle">
+          <input type="checkbox" id="toggleAutoShoutout">
+          <span>Send shoutouts automatically when a tracked streamer goes live</span>
+        </label>
+
+        <label class="field-label">Send shoutouts as
+          <select id="shoutoutAccountType" class="interval-select">
+            <option value="self">My account</option>
+            <option value="bot">A separate bot account</option>
+          </select>
+        </label>
+
+        <div id="selfLoginRow" class="login-row">
+          <span id="selfLoginStatus" class="hint">Not logged in</span>
+          <button id="selfLoginBtn" class="file-btn">Log in with Twitch</button>
+          <button id="selfLogoutBtn" class="file-btn danger" hidden>Log Out</button>
+        </div>
+
+        <div id="botLoginRow" class="login-row" hidden>
+          <p class="hint">The bot account sends the message; your own account still authorizes it for your channel.</p>
+          <span id="botLoginStatus" class="hint">Not logged in</span>
+          <button id="botLoginBtn" class="file-btn">Log in Bot Account</button>
+          <button id="botLogoutBtn" class="file-btn danger" hidden>Log Out Bot</button>
+        </div>
+
+        <label class="field">Shoutout message
+          <input type="text" id="shoutoutTemplateInput" value="!so {username}">
+        </label>
+        <p class="hint">Match this to your <span class="mono">!so</span> command in StreamElements/Nightbot/etc.</p>
+        <button id="saveShoutoutBtn" class="file-btn">Save Shoutout Settings</button>
+        <p id="shoutoutStatus" class="hint"></p>
+      </div>
+
+      <label class="toggle">
+        <input type="checkbox" id="toggleAutoRefresh">
+        <span>Auto Refresh</span>
+      </label>
+
+      <label class="toggle">
+        <span>Auto-Refresh Interval</span>
+      </label>
+      <select id="refreshInterval" class="interval-select">
+        <option value="1">1 minute</option>
+        <option value="5">5 minutes</option>
+        <option value="10">10 minutes</option>
+        <option value="15">15 minutes</option>
+        <option value="30">30 minutes</option>
+        <option value="60">60 minutes</option>
+      </select>
+
+      <label class="toggle">
+        <input type="checkbox" id="toggleSound">
+        <span>Play Live Alert Sound</span>
+      </label>
+
+      <label class="toggle">
+        <input type="checkbox" id="toggleTheme">
+        <span>Light Theme</span>
+      </label>
+
+      <label class="toggle">
+        <input type="checkbox" id="toggleVIP">
+        <span>Highlight VIP Streamers</span>
+      </label>
+
+      <label class="toggle">
+        <input type="checkbox" id="toggleShowOffline">
+        <span>Show Offline Streamers</span>
+      </label>
+
+      <div class="vip-editor">
+        <h3>VIP Editor</h3>
+        <div class="vip-add-row">
+          <input id="vipInput" type="text" placeholder="Add VIP username">
+          <button id="addVipBtn" class="vip-add-btn">Add</button>
+        </div>
+        <ul id="vipListDisplay" class="vip-list"></ul>
+      </div>
+
+      <div class="streamer-add-section">
+        <h3>Add Streamers</h3>
+        <textarea id="addStreamersInput" placeholder="Enter usernames or twitch.tv links, one per line"></textarea>
+        <button id="addStreamersBtn" class="file-btn">Add Streamers</button>
+        <p id="addStreamersStatus" class="hint"></p>
+      </div>
+
+      <button id="exportStreamersBtn" class="file-btn">Export Streamers</button>
+      <button id="chooseStreamersFile" class="file-btn">Choose Streamers File</button>
+    </div>
+  </div>
+
+  <div id="settingsOverlay" class="settings-overlay"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

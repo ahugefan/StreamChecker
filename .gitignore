@@ -1,0 +1,19 @@
+# dependencies and build output
+node_modules/
+dist/
+
+# secrets and personal data - never commit these
+.env
+.env.*
+config.json
+*.secret
+tokens.json
+streamers.txt
+Streamers.txt
+vip.json
+
+# logs and OS files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

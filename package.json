@@ -1,0 +1,37 @@
+{
+  "name": "twitch-live-checker",
+  "version": "0.1.0",
+  "description": "Desktop dashboard that tracks which Twitch streamers are live, alerts you, and can auto-shoutout them in your chat.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "test": "node --test"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.twitchlivechecker.app",
+    "productName": "Twitch Live Checker",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "public/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icons/app-icon.ico"
+    }
+  }
+}

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Twitch Live Checker - Setup</title>
+  <link rel="stylesheet" href="setup.css">
+</head>
+<body class="setup-body">
+  <div class="wizard">
+    <p class="step-count" id="stepCount">Step 1 of 5</p>
+
+    <!-- Step 1: Welcome -->
+    <section class="step" id="step-welcome">
+      <h1>Welcome to Twitch Live Checker</h1>
+      <p class="body-text">
+        This app tracks a list of Twitch streamers and shows you who's live, with titles and
+        viewer counts. It can also shout out streamers automatically in your own chat when
+        they go live, if you want that.
+      </p>
+      <p class="body-text">This short setup takes about two minutes.</p>
+    </section>
+
+    <!-- Step 2: Credentials -->
+    <section class="step" id="step-credentials" hidden>
+      <h2>Connect your Twitch app</h2>
+      <p class="body-text">
+        This app needs its own Twitch application to read stream data. Create one for free at
+        <span class="mono">dev.twitch.tv/console</span>, then paste its keys below.
+      </p>
+      <p class="hint">
+        When creating it: Redirect URL <b>http://localhost:3000</b>, Category
+        "Application Integration", Client Type "Confidential". Name it anything unique
+        (Twitch won't allow the word "twitch" in the name).
+      </p>
+      <label class="field">Client ID
+        <input type="text" id="clientIdInput" placeholder="Paste your Client ID">
+      </label>
+      <label class="field">Client Secret
+        <input type="password" id="clientSecretInput" placeholder="Paste your Client Secret">
+      </label>
+      <p class="status-line" id="credentialsStatus"></p>
+    </section>
+
+    <!-- Step 3: Shoutout choice -->
+    <section class="step" id="step-shoutout-choice" hidden>
+      <h2>Automatic shoutouts</h2>
+      <p class="body-text">
+        Do you want this app to automatically post a shoutout in your chat when a
+        streamer on your list goes live?
+      </p>
+      <div class="choice-row">
+        <div class="choice-card" id="choiceYes">
+          <div class="title">Yes</div>
+          <div class="desc">Log in with Twitch and send shoutouts automatically</div>
+        </div>
+        <div class="choice-card" id="choiceNo">
+          <div class="title">No</div>
+          <div class="desc">Just show me who's live - I'll shout them out myself</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 4a: Login -->
+    <section class="step" id="step-login" hidden>
+      <h2>Log in with Twitch</h2>
+      <p class="body-text">
+        Click below to open Twitch in your browser and approve access. Shoutouts will be
+        sent from your own account. (You can switch to a separate bot account later in
+        Settings.)
+      </p>
+      <button class="btn-primary" id="loginBtn">Log in with Twitch</button>
+      <p class="status-line" id="loginStatus"></p>
+    </section>
+
+    <!-- Step 4b: Shoutout message -->
+    <section class="step" id="step-shoutout-message" hidden>
+      <h2>Shoutout message</h2>
+      <p class="body-text">
+        This message is sent in your chat when a tracked streamer goes live.
+        <span class="mono">{username}</span> is replaced automatically.
+      </p>
+      <p class="hint">
+        If you use StreamElements, Nightbot, or a similar bot for your own <span class="mono">!so</span>
+        command, keep this message matching that command's format.
+      </p>
+      <input type="text" id="shoutoutTemplateInput" value="!so {username}">
+      <p class="status-line" id="shoutoutStatus"></p>
+    </section>
+
+    <!-- Step 5: Add streamers -->
+    <section class="step" id="step-streamers" hidden>
+      <h2>Add streamers to track (optional)</h2>
+      <p class="body-text">
+        Paste usernames or twitch.tv links, one per line. You can always add more later
+        from Settings.
+      </p>
+      <textarea id="streamersInput" placeholder="example_gamer&#10;twitch.tv/another_streamer"></textarea>
+      <p class="status-line" id="streamersStatus"></p>
+    </section>
+
+    <!-- Step 6: Finish -->
+    <section class="step" id="step-finish" hidden>
+      <h2>You're all set</h2>
+      <p class="body-text">The dashboard will open next. You can change any of this later in Settings.</p>
+    </section>
+
+    <div class="wizard-footer">
+      <div class="left">
+        <button class="btn-text" id="backBtn">Back</button>
+      </div>
+      <div class="right">
+        <button class="btn-secondary" id="skipBtn" hidden>Skip</button>
+        <button class="btn-primary" id="nextBtn">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="setup.js"></script>
+</body>
+</html>
