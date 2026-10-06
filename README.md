@@ -12,10 +12,10 @@ Twitch Live Checker sits quietly on your desktop and keeps an eye on a list of s
 
 - **See who's live at a glance** — title, viewer count, and live/offline status for everyone on your list
 - **Star your favorites** so they're always sorted to the top
-- **Get a sound alert** the moment someone goes live
+- **Get a sound alert** the moment someone goes live — use the built-in chime or pick your own sound
 - **Auto-refreshes** on whatever schedule you like (every minute up to once an hour)
 - **Automatic shoutouts** — say `!so username` in your own chat the instant someone you follow goes live, no need to remember or type it yourself
-- **Light or dark mode**, whichever you prefer
+- **Make it yours** — light or dark mode, plus your choice of accent color
 - Add streamers just by pasting their name or their `twitch.tv/` link
 - Everything runs on your own computer, using your own Twitch login — nothing about your setup is sent anywhere else
 
@@ -68,9 +68,39 @@ If you already use a chat bot like StreamElements or Nightbot with your own `!so
 
 By default, shoutouts post from your own account. If you'd rather have a separate bot account send them instead, there's a dropdown for that in Settings — pick "A separate bot account," log it in the same simple way, and you're set. Your own account automatically gives that bot permission to post in your channel, so there's no extra step.
 
+## Making it yours
+
+Both of these live in **Settings**, and both are remembered the next time you open the app.
+
+![Settings](docs/settings-sample.png)
+
+### Choosing your own alert sound
+
+The app comes with a built-in chime, but you can use any sound you like:
+
+1. Open **Settings** and find **Live Alert Sound**
+2. Click **Choose Sound File** and pick an MP3, WAV, or OGG file (up to 2 MB — short and sweet works best)
+3. It plays right away so you can hear what you picked. Use **Play Test** any time, and the **Volume** slider to set how loud it is
+4. Changed your mind? **Use Built-in Chime** puts the original back
+
+A few things worth knowing:
+
+- The app keeps its own copy of your sound, so it's fine to move or delete the original file afterward
+- If your file ever can't be played, the built-in chime plays instead, so you won't miss an alert
+- To turn alerts off completely, uncheck **Play Live Alert Sound**
+
+### Changing the colors
+
+Don't love the default purple? Under **Accent Color** you can:
+
+- Tap one of the preset colors, or pick any color you like with **Custom color**
+- Go back to the original with **Reset to Default**
+
+The accent color is used for buttons, headings, and highlights. It works with **Light Theme** too, and button text switches between light and dark automatically so it stays easy to read. The red/gray live and offline badges keep their colors so they always mean the same thing. If you pick a custom color that would blend into the background, the app will ask you to try a different one.
+
 ## Your privacy
 
-Everything you set up — your Twitch keys, your streamer list, your login — stays on your own computer. None of it is sent to me or anyone else. Your login and secret key are also encrypted using your Windows account's own built-in protection, the same kind of security Windows uses to protect your other saved passwords.
+Everything you set up — your Twitch keys, your streamer list, your login, your custom alert sound — stays on your own computer. None of it is sent to me or anyone else. Your login and secret key are also encrypted using your Windows account's own built-in protection, the same kind of security Windows uses to protect your other saved passwords.
 
 ## Running it from the source code
 

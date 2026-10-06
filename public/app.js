@@ -5,6 +5,13 @@ let API_BASE = '';
 let SESSION_KEY = '';
 
 const el = (id) => document.getElementById(id);
+
+// Anything that came from outside the app (stream titles especially, which
+// streamers type themselves) must be escaped before going into innerHTML.
+function escapeHtml(value) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return String(value ?? '').replace(/[&<>"']/g, ch => map[ch]);
+}
 const streamGrid = el('streamGrid');
 const totalStreamersEl = el('totalStreamers');
 const liveNowEl = el('liveNow');
@@ -38,7 +45,76 @@ const addStreamersBtn = el('addStreamersBtn');
 const addStreamersStatus = el('addStreamersStatus');
 const chooseStreamersFile = el('chooseStreamersFile');
 
-const liveSound = new Audio('live.mp3');
+// --- Live alert sound: the built-in chime, or the user's own file ---
+
+const DEFAULT_SOUND_URL = 'live.mp3';
+const chooseSoundBtn = el('chooseSoundBtn');
+const testSoundBtn = el('testSoundBtn');
+const resetSoundBtn = el('resetSoundBtn');
+const soundVolume = el('soundVolume');
+const soundVolumeLabel = el('soundVolumeLabel');
+const soundCurrent = el('soundCurrent');
+const soundStatus = el('soundStatus');
+
+let alertSound = new Audio(DEFAULT_SOUND_URL);
+let alertUrl = null;          // blob: URL for the custom sound, while one is loaded
+let usingCustomSound = false;
+
+function currentVolume() {
+  const v = settings ? settings.soundVolume : 100;
+  return Math.min(1, Math.max(0, v / 100));
+}
+
+function useDefaultSound() {
+  if (alertUrl) { URL.revokeObjectURL(alertUrl); alertUrl = null; }
+  alertSound = new Audio(DEFAULT_SOUND_URL);
+  usingCustomSound = false;
+}
+
+async function loadAlertSound() {
+  useDefaultSound();
+  if (settings && settings.soundFile && window.soundAPI) {
+    try {
+      const custom = await window.soundAPI.getCustom();
+      if (custom) {
+        alertUrl = URL.createObjectURL(new Blob([custom.bytes], { type: custom.mime }));
+        alertSound = new Audio(alertUrl);
+        usingCustomSound = true;
+      }
+    } catch { /* keep the built-in chime */ }
+  }
+}
+
+// Returns 'ok', 'fallback' (the custom sound failed, so the built-in chime
+// played instead) or 'failed' (nothing could be played).
+async function playAlert() {
+  try {
+    alertSound.volume = currentVolume();
+    alertSound.currentTime = 0;
+    await alertSound.play();
+    return 'ok';
+  } catch {
+    if (!usingCustomSound) return 'failed';
+  }
+  useDefaultSound();
+  try {
+    alertSound.volume = currentVolume();
+    await alertSound.play();
+    return 'fallback';
+  } catch {
+    return 'failed';
+  }
+}
+
+function updateSoundUI() {
+  const custom = Boolean(settings.soundFile);
+  soundCurrent.textContent = custom
+    ? `Using your sound: ${settings.soundLabel || 'custom file'}`
+    : 'Using the built-in chime.';
+  resetSoundBtn.hidden = !custom;
+  soundVolume.value = String(settings.soundVolume);
+  soundVolumeLabel.textContent = `${settings.soundVolume}%`;
+}
 
 let settings = null;
 let refreshTimer = null;
@@ -76,6 +152,9 @@ function applySettingsToUI() {
     ? 'Client Secret is saved.'
     : 'No Client Secret saved yet.';
   document.body.classList.toggle('light-theme', settings.lightTheme);
+  applyTheme();
+  updateThemeUI();
+  updateSoundUI();
   renderVipList();
 }
 
@@ -83,7 +162,7 @@ function renderVipList() {
   vipListDisplay.innerHTML = '';
   settings.vips.forEach(name => {
     const li = document.createElement('li');
-    li.innerHTML = `<span>${name}</span><span class="vip-remove" data-name="${name}">✕</span>`;
+    li.innerHTML = `<span>${escapeHtml(name)}</span><span class="vip-remove" data-name="${escapeHtml(name)}">✕</span>`;
     vipListDisplay.appendChild(li);
   });
 }
@@ -97,7 +176,7 @@ async function refresh() {
     lastRefreshEl.textContent = data.lastRefresh;
 
     if (toggleSound.checked && data.liveNow > lastLiveCount) {
-      liveSound.play().catch(() => {});
+      playAlert();
     }
     lastLiveCount = data.liveNow;
 
@@ -129,17 +208,17 @@ function renderStreams(streams) {
 
     card.innerHTML = `
       <div class="card-header">
-        <span class="username">${stream.username}</span>
+        <span class="username">${escapeHtml(stream.username)}</span>
         <span class="status-pill ${stream.isLive ? 'status-live' : 'status-offline'}">
           ${stream.isLive ? 'LIVE' : 'OFFLINE'}
         </span>
       </div>
-      <div class="title">${stream.title}</div>
+      <div class="title">${escapeHtml(stream.title)}</div>
       <div class="meta-row">
-        <span class="viewers">${stream.isLive ? stream.viewers + ' viewers' : ''}</span>
+        <span class="viewers">${stream.isLive ? escapeHtml(stream.viewers) + ' viewers' : ''}</span>
         <div class="meta-right">
-          <span class="vip-star ${stream.isVip ? 'vip' : ''}" data-user="${stream.username}">⭐</span>
-          <span class="remove-streamer" data-user="${stream.username}">➖</span>
+          <span class="vip-star ${stream.isVip ? 'vip' : ''}" data-user="${escapeHtml(stream.username)}">⭐</span>
+          <span class="remove-streamer" data-user="${escapeHtml(stream.username)}">➖</span>
         </div>
       </div>
     `;
@@ -201,8 +280,62 @@ refreshIntervalSelect.addEventListener('change', async () => {
   restartAutoRefresh();
 });
 toggleSound.addEventListener('change', () => saveSetting({ soundEnabled: toggleSound.checked }));
+
+chooseSoundBtn.addEventListener('click', async () => {
+  if (!window.soundAPI) return;
+  soundStatus.textContent = '';
+  const result = await window.soundAPI.choose();
+  if (!result) return; // dialog was cancelled
+  if (!result.ok) { soundStatus.textContent = result.error; return; }
+
+  settings.soundFile = result.soundFile;
+  settings.soundLabel = result.soundLabel;
+  await loadAlertSound();
+  const outcome = await playAlert(); // preview it right away
+  if (outcome === 'fallback') {
+    // Never keep a file that can't be played.
+    await window.soundAPI.reset();
+    settings.soundFile = '';
+    settings.soundLabel = '';
+    soundStatus.textContent = "That file couldn't be played, so the built-in chime is still in use.";
+  } else {
+    soundStatus.textContent = outcome === 'ok' ? 'Sound saved.' : "Sound saved, but nothing played. Check your system volume.";
+  }
+  updateSoundUI();
+});
+
+testSoundBtn.addEventListener('click', async () => {
+  const outcome = await playAlert();
+  soundStatus.textContent =
+    outcome === 'ok' ? '' :
+    outcome === 'fallback' ? "Your sound file couldn't be played, so the built-in chime was used." :
+    "Couldn't play a sound. Check your system volume.";
+});
+
+resetSoundBtn.addEventListener('click', async () => {
+  if (!window.soundAPI) return;
+  await window.soundAPI.reset();
+  settings.soundFile = '';
+  settings.soundLabel = '';
+  await loadAlertSound();
+  updateSoundUI();
+  soundStatus.textContent = 'Using the built-in chime.';
+});
+
+soundVolume.addEventListener('input', () => { soundVolumeLabel.textContent = `${soundVolume.value}%`; });
+soundVolume.addEventListener('change', async () => {
+  try {
+    await saveSetting({ soundVolume: Number(soundVolume.value) });
+    soundStatus.textContent = '';
+    playAlert(); // let the user hear the new level
+  } catch (err) {
+    soundStatus.textContent = err.message;
+    updateSoundUI();
+  }
+});
 toggleTheme.addEventListener('change', () => {
   document.body.classList.toggle('light-theme', toggleTheme.checked);
+  applyTheme();
   saveSetting({ lightTheme: toggleTheme.checked });
 });
 toggleVIP.addEventListener('change', () => { saveSetting({ highlightVips: toggleVIP.checked }); refresh(); });
@@ -271,6 +404,68 @@ el('exportStreamersBtn').addEventListener('click', async () => {
 });
 
 el('refreshBtn').addEventListener('click', refresh);
+
+// --- Accent color theme ---
+
+const themeSwatches = el('themeSwatches');
+const accentColorInput = el('accentColorInput');
+const resetThemeBtn = el('resetThemeBtn');
+const themeStatus = el('themeStatus');
+
+function isLightMode() { return document.body.classList.contains('light-theme'); }
+
+function applyTheme(accent = settings.accentColor) {
+  const light = isLightMode();
+  ThemeUtil.apply(document.documentElement, accent, light);
+  ThemeUtil.cache(accent, light);
+}
+
+function updateThemeUI() {
+  const accent = settings.accentColor;
+  accentColorInput.value = accent;
+  resetThemeBtn.hidden = accent === ThemeUtil.DEFAULT_ACCENT;
+  themeSwatches.querySelectorAll('.swatch').forEach(btn => {
+    const selected = btn.dataset.color === accent;
+    btn.classList.toggle('selected', selected);
+    btn.setAttribute('aria-pressed', String(selected));
+  });
+}
+
+async function setAccent(color) {
+  color = String(color).toLowerCase();
+  if (!ThemeUtil.isVisible(color, isLightMode())) {
+    themeStatus.textContent =
+      `That color is too close to the ${isLightMode() ? 'light' : 'dark'} background to read. Try a different one.`;
+  } else {
+    try {
+      await saveSetting({ accentColor: color });
+      themeStatus.textContent = '';
+    } catch (err) {
+      themeStatus.textContent = err.message;
+    }
+  }
+  applyTheme();   // always re-apply what is actually saved (undoes a live preview that was rejected)
+  updateThemeUI();
+}
+
+ThemeUtil.PRESETS.forEach(preset => {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'swatch';
+  btn.dataset.color = preset.color;
+  btn.title = preset.name;
+  btn.setAttribute('aria-label', preset.name);
+  btn.style.background = preset.color;
+  btn.addEventListener('click', () => setAccent(preset.color));
+  themeSwatches.appendChild(btn);
+});
+
+// Live preview while the color picker is open; saved when it closes.
+accentColorInput.addEventListener('input', () => {
+  if (ThemeUtil.isVisible(accentColorInput.value, isLightMode())) applyTheme(accentColorInput.value);
+});
+accentColorInput.addEventListener('change', () => setAccent(accentColorInput.value));
+resetThemeBtn.addEventListener('click', () => setAccent(ThemeUtil.DEFAULT_ACCENT));
 
 // --- Shoutouts & login (self / bot account) ---
 
@@ -391,6 +586,7 @@ async function init() {
 
   settings = await api('/api/settings');
   applySettingsToUI();
+  await loadAlertSound();
   toggleAutoShoutout.checked = settings.autoShoutout;
   shoutoutAccountType.value = settings.shoutoutAccountType;
   shoutoutTemplateInput.value = settings.shoutoutTemplate;

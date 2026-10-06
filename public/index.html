@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Twitch Live Checker</title>
   <link rel="stylesheet" href="style.css">
+  <script src="theme.js"></script>
 </head>
 <body>
   <div class="app">
@@ -110,10 +111,33 @@
         <span>Play Live Alert Sound</span>
       </label>
 
+      <div class="credentials-box">
+        <h3>Live Alert Sound</h3>
+        <p id="soundCurrent" class="hint">Using the built-in chime.</p>
+        <button id="chooseSoundBtn" class="file-btn">Choose Sound File</button>
+        <button id="testSoundBtn" class="file-btn">Play Test</button>
+        <button id="resetSoundBtn" class="file-btn" hidden>Use Built-in Chime</button>
+        <label class="field-label">Volume: <span id="soundVolumeLabel">100%</span>
+          <input id="soundVolume" type="range" min="0" max="100" step="5" value="100" style="width:100%">
+        </label>
+        <p class="hint">MP3, WAV or OGG, up to 2 MB. The built-in chime is used if your file can't be played.</p>
+        <p id="soundStatus" class="hint"></p>
+      </div>
+
       <label class="toggle">
         <input type="checkbox" id="toggleTheme">
         <span>Light Theme</span>
       </label>
+
+      <div class="credentials-box">
+        <h3>Accent Color</h3>
+        <div id="themeSwatches" class="swatch-row"></div>
+        <label class="field-label color-field">Custom color
+          <input id="accentColorInput" type="color" value="#9146ff">
+        </label>
+        <button id="resetThemeBtn" class="file-btn" hidden>Reset to Default</button>
+        <p id="themeStatus" class="hint"></p>
+      </div>
 
       <label class="toggle">
         <input type="checkbox" id="toggleVIP">

@@ -16,6 +16,12 @@ contextBridge.exposeInMainWorld('fileAPI', {
   chooseStreamersFile: () => ipcRenderer.invoke('choose-streamers-file')
 });
 
+contextBridge.exposeInMainWorld('soundAPI', {
+  choose: () => ipcRenderer.invoke('choose-sound-file'),
+  getCustom: () => ipcRenderer.invoke('get-custom-sound'),
+  reset: () => ipcRenderer.invoke('reset-sound')
+});
+
 contextBridge.exposeInMainWorld('electronAPI', {
   exportStreamers: (streamers) => ipcRenderer.invoke('export-streamers', streamers)
 });

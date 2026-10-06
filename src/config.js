@@ -24,7 +24,11 @@ const DEFAULTS = Object.freeze({
   autoRefresh: true,
   refreshMinutes: 5,
   soundEnabled: true,
+  soundFile: '',               // '' = built-in chime; otherwise custom-sound.<ext> in the config folder
+  soundLabel: '',              // original file name of the custom sound (display only)
+  soundVolume: 100,            // 0-100
   lightTheme: false,
+  accentColor: '#9146ff',      // theme accent color as #rrggbb
   highlightVips: true,
   showOffline: true,
   autoShoutout: true,
@@ -75,7 +79,29 @@ const RULES = {
   },
   autoRefresh: bool('autoRefresh'),
   soundEnabled: bool('soundEnabled'),
+  soundFile: v => {
+    if (v === '') return '';
+    if (typeof v !== 'string' || !/^custom-sound\.(mp3|wav|ogg)$/.test(v)) {
+      throw new Error('soundFile must be empty or a custom-sound file');
+    }
+    return v;
+  },
+  soundLabel: v => {
+    if (typeof v !== 'string') throw new Error('soundLabel must be text');
+    return v.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 80);
+  },
+  soundVolume: v => {
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 0 || n > 100) throw new Error('soundVolume must be a whole number from 0 to 100');
+    return n;
+  },
   lightTheme: bool('lightTheme'),
+  accentColor: v => {
+    if (typeof v !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(v)) {
+      throw new Error('accentColor must be a color like #9146ff');
+    }
+    return v.toLowerCase();
+  },
   highlightVips: bool('highlightVips'),
   showOffline: bool('showOffline'),
   autoShoutout: bool('autoShoutout'),

@@ -3,7 +3,10 @@
   --bg-alt: #10121a;
   --card-bg: #151827;
   --accent: #9146ff;
-  --accent-soft: rgba(145, 70, 255, 0.25);
+  --accent-rgb: 145 70 255;   /* same color as --accent, as r g b, for translucent uses */
+  --on-accent: #ffffff;        /* text on accent-filled buttons */
+  --accent-text: var(--accent); /* accent used as text/headings */
+  --accent-soft: rgb(var(--accent-rgb) / 0.25);
   --text: #f5f5ff;
   --muted: #9ca3c7;
   --danger: #ff4b81;
@@ -32,7 +35,7 @@ body {
   background: linear-gradient(145deg, rgba(10, 12, 24, 0.96), rgba(5, 6, 12, 0.98));
   border-radius: 18px;
   box-shadow: var(--shadow-soft);
-  border: 1px solid rgba(145, 70, 255, 0.18);
+  border: 1px solid rgb(var(--accent-rgb) / 0.18);
 }
 
 .top-bar {
@@ -47,10 +50,10 @@ body {
 .stats { display: flex; gap: 18px; }
 
 .stat {
-  background: radial-gradient(circle at top left, rgba(145, 70, 255, 0.18), rgba(10, 12, 24, 0.9));
+  background: radial-gradient(circle at top left, rgb(var(--accent-rgb) / 0.18), rgba(10, 12, 24, 0.9));
   padding: 10px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(145, 70, 255, 0.25);
+  border: 1px solid rgb(var(--accent-rgb) / 0.25);
   min-width: 130px;
 }
 
@@ -70,16 +73,17 @@ button {
 }
 
 #refreshBtn {
-  background: var(--accent); color: #fff;
-  box-shadow: 0 0 0 1px rgba(145, 70, 255, 0.4), 0 10px 25px rgba(145, 70, 255, 0.45);
+  background: var(--accent); color: var(--on-accent);
+  box-shadow: 0 0 0 1px rgb(var(--accent-rgb) / 0.4), 0 10px 25px rgb(var(--accent-rgb) / 0.45);
 }
 #refreshBtn:hover { transform: translateY(-1px); }
 
-#settingsBtn {
+#settingsBtn, #resendShoutoutsBtn {
   background: rgba(15, 17, 30, 0.95); color: var(--muted);
   border: 1px solid rgba(55, 65, 81, 0.9);
 }
-#settingsBtn:hover { background: rgba(31, 35, 55, 0.95); }
+#settingsBtn:hover, #resendShoutoutsBtn:hover { background: rgba(31, 35, 55, 0.95); }
+#resendShoutoutsBtn:disabled { opacity: 0.6; cursor: default; }
 
 .status-banner {
   background: rgba(255, 75, 129, 0.12);
@@ -112,7 +116,7 @@ button {
 }
 
 .card {
-  background: radial-gradient(circle at top, rgba(145, 70, 255, 0.16), rgba(10, 12, 24, 0.98));
+  background: radial-gradient(circle at top, rgb(var(--accent-rgb) / 0.16), rgba(10, 12, 24, 0.98));
   border-radius: var(--radius-lg);
   padding: 12px 13px 11px;
   border: 1px solid var(--border);
@@ -120,8 +124,8 @@ button {
   display: flex; flex-direction: column; gap: 6px;
   cursor: pointer; transition: 0.15s ease;
 }
-.card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(145, 70, 255, 0.25); }
-.card.flash { box-shadow: 0 0 18px rgba(145, 70, 255, 0.9) !important; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgb(var(--accent-rgb) / 0.25); }
+.card.flash { box-shadow: 0 0 18px rgb(var(--accent-rgb) / 0.9) !important; }
 .card.offline {
   opacity: 0.55; filter: grayscale(40%);
   background: linear-gradient(145deg, #0b0c13, #05060a);
@@ -150,7 +154,7 @@ button {
 
 .settings-panel {
   position: fixed; top: 0; right: -360px; width: 360px; height: 100%;
-  background: #0d0f17; border-left: 1px solid rgba(145, 70, 255, 0.25);
+  background: #0d0f17; border-left: 1px solid rgb(var(--accent-rgb) / 0.25);
   box-shadow: -6px 0 20px rgba(0, 0, 0, 0.6); padding: 20px;
   transition: right 0.25s ease; z-index: 9999; overflow-y: auto;
 }
@@ -163,7 +167,7 @@ button {
 .settings-overlay.visible { opacity: 1; pointer-events: all; }
 
 .settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
-.settings-header h2 { margin: 0; color: var(--accent); }
+.settings-header h2 { margin: 0; color: var(--accent-text); }
 .close-btn { background: transparent; border: none; color: var(--muted); font-size: 20px; cursor: pointer; }
 
 .settings-section { display: flex; flex-direction: column; gap: 16px; }
@@ -177,9 +181,9 @@ button {
 
 .credentials-box {
   padding-bottom: 14px;
-  border-bottom: 1px solid rgba(145, 70, 255, 0.25);
+  border-bottom: 1px solid rgb(var(--accent-rgb) / 0.25);
 }
-.credentials-box h3 { margin: 0 0 6px; color: var(--accent); font-size: 15px; }
+.credentials-box h3 { margin: 0 0 6px; color: var(--accent-text); font-size: 15px; }
 .credentials-box input {
   width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #444;
   background: #111; color: white; margin-top: 6px;
@@ -205,11 +209,11 @@ button {
 .file-btn.danger { background: transparent; color: var(--danger); border: 1px solid rgba(255,75,129,0.5); }
 .file-btn.danger:hover { background: rgba(255,75,129,0.12); }
 
-.vip-editor { margin-top: 4px; padding-top: 10px; border-top: 1px solid rgba(145, 70, 255, 0.25); }
-.vip-editor h3 { margin: 0 0 8px 0; color: var(--accent); font-size: 15px; }
+.vip-editor { margin-top: 4px; padding-top: 10px; border-top: 1px solid rgb(var(--accent-rgb) / 0.25); }
+.vip-editor h3 { margin: 0 0 8px 0; color: var(--accent-text); font-size: 15px; }
 .vip-add-row { display: flex; gap: 8px; }
 #vipInput { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #444; background: #111; color: white; }
-.vip-add-btn { padding: 8px 12px; background: var(--accent); color: white; border-radius: 8px; border: none; cursor: pointer; }
+.vip-add-btn { padding: 8px 12px; background: var(--accent); color: var(--on-accent); border-radius: 8px; border: none; cursor: pointer; }
 .vip-list { list-style: none; padding: 0; margin-top: 10px; }
 .vip-list li {
   display: flex; justify-content: space-between; padding: 6px 8px;
@@ -224,7 +228,7 @@ button {
 }
 
 .file-btn {
-  padding: 10px 14px; background: var(--accent); color: white; border: none;
+  padding: 10px 14px; background: var(--accent); color: var(--on-accent); border: none;
   border-radius: var(--radius-md); cursor: pointer; font-size: 14px; margin-top: 10px;
   width: 100%;
 }
@@ -237,11 +241,26 @@ body.light-theme .card { background: #ffffff; border-color: #ccc; }
 body.light-theme .card.offline { background: #f2f2f2; border-color: #bbb; }
 body.light-theme .status-live { background: rgba(255,0,0,0.15); color: #b30000; }
 body.light-theme .status-offline { background: #ddd; color: #666; }
-body.light-theme #refreshBtn { background: #9146ff; color: white; }
-body.light-theme #settingsBtn { background: #eee; color: #333; border-color: #ccc; }
+body.light-theme #refreshBtn { background: var(--accent); color: var(--on-accent); }
+body.light-theme #settingsBtn, body.light-theme #resendShoutoutsBtn { background: #eee; color: #333; border-color: #ccc; }
 body.light-theme .settings-panel { background: #ffffff; border-left: 1px solid #ccc; }
 body.light-theme .interval-select, body.light-theme #vipInput, body.light-theme .credentials-box input,
 body.light-theme .streamer-add-section textarea {
   background: #fff; color: #111; border-color: #ccc;
 }
 body.light-theme .vip-list li { background: #fff; border-color: #ccc; }
+
+/* Accent color picker (Settings) */
+.swatch-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.swatch {
+  width: 30px; height: 30px; padding: 0; border-radius: 50%;
+  border: 2px solid transparent; color: inherit;
+}
+.swatch:hover { transform: scale(1.1); }
+.swatch.selected { border-color: currentColor; box-shadow: 0 0 0 2px rgb(var(--accent-rgb) / 0.35); }
+.swatch:focus-visible, .credentials-box input[type="color"]:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.credentials-box .color-field { display: flex; align-items: center; justify-content: space-between; }
+.credentials-box input[type="color"] { width: 56px; height: 34px; padding: 2px; margin-top: 0; cursor: pointer; }
+
+/* Native checkboxes and the volume slider follow the accent color too */
+input[type="checkbox"], input[type="range"] { accent-color: var(--accent); }

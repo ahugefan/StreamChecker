@@ -8,6 +8,7 @@ const { createShoutoutEngine } = require('./src/shoutout-engine');
 const { sendChatMessage } = require('./src/chat');
 const { createServer } = require('./src/server');
 const { runLoginFlow } = require('./src/login-flow');
+const { installSound, readCustomSound, removeCustomSounds } = require('./src/sound');
 
 const SHOUTOUT_CHECK_INTERVAL_MS = 60_000;
 
@@ -108,6 +109,39 @@ ipcMain.handle('choose-streamers-file', async () => {
   if (result.canceled || !result.filePaths.length) return null;
   const content = fs.readFileSync(result.filePaths[0], 'utf-8');
   return { filePath: result.filePaths[0], content };
+});
+
+// --- Custom live-alert sound ---
+// The chosen file is copied into the app's config folder (see src/sound.js),
+// so the setting only ever stores a fixed file name, never a path.
+
+ipcMain.handle('choose-sound-file', async () => {
+  if (!config) return { ok: false, error: 'Settings are not available right now.' };
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Choose Live Alert Sound',
+    filters: [{ name: 'Sound Files', extensions: ['mp3', 'wav', 'ogg'] }],
+    properties: ['openFile']
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  try {
+    const installed = installSound({ sourcePath: result.filePaths[0], dir: config.dir });
+    const updated = config.updateSettings(installed);
+    return { ok: true, soundFile: updated.soundFile, soundLabel: updated.soundLabel };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle('get-custom-sound', () => {
+  if (!config) return null;
+  return readCustomSound({ dir: config.dir, soundFile: config.getSettings().soundFile });
+});
+
+ipcMain.handle('reset-sound', () => {
+  if (!config) return { ok: false };
+  removeCustomSounds(config.dir);
+  config.updateSettings({ soundFile: '', soundLabel: '' });
+  return { ok: true };
 });
 
 ipcMain.handle('copy-to-clipboard', (_event, text) => {
