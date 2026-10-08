@@ -22,6 +22,15 @@ contextBridge.exposeInMainWorld('soundAPI', {
   reset: () => ipcRenderer.invoke('reset-sound')
 });
 
+contextBridge.exposeInMainWorld('overlayAPI', {
+  open: () => ipcRenderer.invoke('overlay-open'),
+  close: () => ipcRenderer.invoke('overlay-close'),
+  isOpen: () => ipcRenderer.invoke('overlay-is-open'),
+  setAlwaysOnTop: (flag) => ipcRenderer.invoke('overlay-set-always-on-top', Boolean(flag)),
+  // Called whenever the overlay window opens or closes (including by its own close button).
+  onState: (callback) => ipcRenderer.on('overlay-state', (_event, open) => callback(Boolean(open)))
+});
+
 contextBridge.exposeInMainWorld('electronAPI', {
   exportStreamers: (streamers) => ipcRenderer.invoke('export-streamers', streamers)
 });

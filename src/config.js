@@ -29,6 +29,13 @@ const DEFAULTS = Object.freeze({
   soundVolume: 100,            // 0-100
   lightTheme: false,
   accentColor: '#9146ff',      // theme accent color as #rrggbb
+  overlayAutoOpen: false,      // open the stream overlay window when the app starts
+  overlayAlwaysOnTop: false,   // keep the overlay window above other windows
+  overlaySpeed: 'medium',      // 'slow' | 'medium' | 'fast' - how fast the overlay list scrolls
+  overlayTitles: 'full',       // 'full' | 'one-line' | 'off' - stream titles in the overlay
+  overlayShowViewers: true,    // viewer counts in the overlay
+  overlayBackground: 'theme',  // 'theme' (app background) | 'green' (solid green for OBS chroma key)
+  overlayBounds: null,         // last position and size of the overlay window: { x, y, width, height }
   highlightVips: true,
   showOffline: true,
   autoShoutout: true,
@@ -102,6 +109,24 @@ const RULES = {
     }
     return v.toLowerCase();
   },
+  overlayAutoOpen: bool('overlayAutoOpen'),
+  overlayAlwaysOnTop: bool('overlayAlwaysOnTop'),
+  overlayShowViewers: bool('overlayShowViewers'),
+  overlaySpeed: oneOf('overlaySpeed', ['slow', 'medium', 'fast']),
+  overlayTitles: oneOf('overlayTitles', ['full', 'one-line', 'off']),
+  overlayBackground: oneOf('overlayBackground', ['theme', 'green']),
+  overlayBounds: v => {
+    if (v === null) return null;
+    const keys = ['x', 'y', 'width', 'height'];
+    if (!v || typeof v !== 'object' || !keys.every(k => Number.isInteger(v[k]))) {
+      throw new Error('overlayBounds must have whole numbers for x, y, width and height');
+    }
+    if (v.width < 100 || v.width > 10000 || v.height < 100 || v.height > 10000 ||
+        Math.abs(v.x) > 30000 || Math.abs(v.y) > 30000) {
+      throw new Error('overlayBounds is outside the sensible range');
+    }
+    return { x: v.x, y: v.y, width: v.width, height: v.height };
+  },
   highlightVips: bool('highlightVips'),
   showOffline: bool('showOffline'),
   autoShoutout: bool('autoShoutout'),
@@ -119,6 +144,13 @@ const RULES = {
     return t;
   }
 };
+
+function oneOf(name, choices) {
+  return v => {
+    if (!choices.includes(v)) throw new Error(`${name} must be one of ${choices.join(', ')}`);
+    return v;
+  };
+}
 
 function bool(name) {
   return v => {

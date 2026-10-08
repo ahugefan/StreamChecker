@@ -139,6 +139,47 @@
         <p id="themeStatus" class="hint"></p>
       </div>
 
+      <div class="credentials-box overlay-box">
+        <h3>Stream Overlay</h3>
+        <p class="hint">A compact list of who's live that scrolls in its own window. In OBS, add a Window Capture and choose "Live Checker Overlay".</p>
+        <button id="overlayToggleBtn" class="file-btn">Open Overlay Window</button>
+
+        <label class="toggle">
+          <input type="checkbox" id="overlayAutoOpen">
+          <span>Open the overlay when the app starts</span>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="overlayAlwaysOnTop">
+          <span>Keep the overlay window on top</span>
+        </label>
+
+        <label class="field-label">Scroll speed
+          <select id="overlaySpeed" class="interval-select">
+            <option value="slow">Slow</option>
+            <option value="medium">Medium</option>
+            <option value="fast">Fast</option>
+          </select>
+        </label>
+        <label class="field-label">Stream titles
+          <select id="overlayTitles" class="interval-select">
+            <option value="full">Full</option>
+            <option value="one-line">One line</option>
+            <option value="off">Hidden</option>
+          </select>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="overlayShowViewers">
+          <span>Show viewer counts</span>
+        </label>
+        <label class="field-label">Background
+          <select id="overlayBackground" class="interval-select">
+            <option value="theme">App background</option>
+            <option value="green">Solid green (for OBS Chroma Key)</option>
+          </select>
+        </label>
+        <p id="overlayStatus" class="hint"></p>
+      </div>
+
       <label class="toggle">
         <input type="checkbox" id="toggleVIP">
         <span>Highlight VIP Streamers</span>

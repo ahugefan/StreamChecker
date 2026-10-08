@@ -154,6 +154,7 @@ function applySettingsToUI() {
   document.body.classList.toggle('light-theme', settings.lightTheme);
   applyTheme();
   updateThemeUI();
+  updateOverlayUI();
   updateSoundUI();
   renderVipList();
 }
@@ -467,6 +468,55 @@ accentColorInput.addEventListener('input', () => {
 accentColorInput.addEventListener('change', () => setAccent(accentColorInput.value));
 resetThemeBtn.addEventListener('click', () => setAccent(ThemeUtil.DEFAULT_ACCENT));
 
+// --- Stream overlay (separate window; see overlay.html) ---
+
+const overlayToggleBtn = el('overlayToggleBtn');
+const overlayAutoOpen = el('overlayAutoOpen');
+const overlayAlwaysOnTop = el('overlayAlwaysOnTop');
+const overlaySpeed = el('overlaySpeed');
+const overlayTitles = el('overlayTitles');
+const overlayShowViewers = el('overlayShowViewers');
+const overlayBackground = el('overlayBackground');
+const overlayStatus = el('overlayStatus');
+
+let overlayOpen = false;
+
+function updateOverlayUI() {
+  overlayToggleBtn.textContent = overlayOpen ? 'Close Overlay Window' : 'Open Overlay Window';
+  overlayAutoOpen.checked = settings.overlayAutoOpen;
+  overlayAlwaysOnTop.checked = settings.overlayAlwaysOnTop;
+  overlaySpeed.value = settings.overlaySpeed;
+  overlayTitles.value = settings.overlayTitles;
+  overlayShowViewers.checked = settings.overlayShowViewers;
+  overlayBackground.value = settings.overlayBackground;
+}
+
+async function saveOverlaySetting(patch) {
+  try {
+    await saveSetting(patch);
+    overlayStatus.textContent = '';
+  } catch (err) {
+    overlayStatus.textContent = err.message;
+    updateOverlayUI();
+  }
+}
+
+overlayToggleBtn.addEventListener('click', async () => {
+  if (!window.overlayAPI) return;
+  if (overlayOpen) await window.overlayAPI.close();
+  else await window.overlayAPI.open();
+});
+overlayAutoOpen.addEventListener('change', () => saveOverlaySetting({ overlayAutoOpen: overlayAutoOpen.checked }));
+overlayAlwaysOnTop.addEventListener('change', async () => {
+  if (!window.overlayAPI) return;
+  await window.overlayAPI.setAlwaysOnTop(overlayAlwaysOnTop.checked); // the main process saves it and applies it to the open window
+  settings.overlayAlwaysOnTop = overlayAlwaysOnTop.checked;
+});
+overlaySpeed.addEventListener('change', () => saveOverlaySetting({ overlaySpeed: overlaySpeed.value }));
+overlayTitles.addEventListener('change', () => saveOverlaySetting({ overlayTitles: overlayTitles.value }));
+overlayShowViewers.addEventListener('change', () => saveOverlaySetting({ overlayShowViewers: overlayShowViewers.checked }));
+overlayBackground.addEventListener('change', () => saveOverlaySetting({ overlayBackground: overlayBackground.value }));
+
 // --- Shoutouts & login (self / bot account) ---
 
 const toggleAutoShoutout = el('toggleAutoShoutout');
@@ -587,6 +637,11 @@ async function init() {
   settings = await api('/api/settings');
   applySettingsToUI();
   await loadAlertSound();
+  if (window.overlayAPI) {
+    overlayOpen = await window.overlayAPI.isOpen();
+    window.overlayAPI.onState((open) => { overlayOpen = open; updateOverlayUI(); });
+    updateOverlayUI();
+  }
   toggleAutoShoutout.checked = settings.autoShoutout;
   shoutoutAccountType.value = settings.shoutoutAccountType;
   shoutoutTemplateInput.value = settings.shoutoutTemplate;

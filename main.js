@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, safeStorage, dialog, clipboard, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, safeStorage, dialog, clipboard, shell, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { createConfig } = require('./src/config');
@@ -9,6 +9,7 @@ const { sendChatMessage } = require('./src/chat');
 const { createServer } = require('./src/server');
 const { runLoginFlow } = require('./src/login-flow');
 const { installSound, readCustomSound, removeCustomSounds } = require('./src/sound');
+const { createOverlayManager } = require('./src/overlay-window');
 
 const SHOUTOUT_CHECK_INTERVAL_MS = 60_000;
 
@@ -19,6 +20,7 @@ let serverInfo = null; // { port, sessionKey }
 let config = null;
 let loginInProgress = false;
 let shoutoutTimer = null;
+let overlay = null;
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -46,6 +48,19 @@ async function runLogin(scopes) {
 async function startBackend() {
   const configDir = path.join(app.getPath('userData'), 'config');
   config = createConfig({ dir: configDir, safeStorage });
+
+  overlay = createOverlayManager({
+    BrowserWindow,
+    screen,
+    config,
+    preloadPath: path.join(__dirname, 'preload.js'),
+    pagePath: path.join(__dirname, 'public', 'overlay.html'),
+    iconPath: path.join(__dirname, 'public', 'icons', 'app-icon.png'),
+    // Lets the Settings button in the main window say "Open" or "Close" correctly.
+    onStateChange: (open) => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('overlay-state', open);
+    }
+  });
 
   const getClientId = () => config.getSettings().clientId;
   const getClientSecret = () => config.getSecret('clientSecret');
@@ -144,6 +159,16 @@ ipcMain.handle('reset-sound', () => {
   return { ok: true };
 });
 
+// --- Stream overlay window ---
+
+ipcMain.handle('overlay-open', () => (overlay ? overlay.open() : false));
+ipcMain.handle('overlay-close', () => { if (overlay) overlay.close(); return true; });
+ipcMain.handle('overlay-is-open', () => Boolean(overlay && overlay.isOpen()));
+ipcMain.handle('overlay-set-always-on-top', (_event, flag) => {
+  if (overlay) overlay.setAlwaysOnTop(Boolean(flag));
+  return true;
+});
+
 ipcMain.handle('copy-to-clipboard', (_event, text) => {
   clipboard.writeText(text || '');
   return true;
@@ -173,6 +198,7 @@ function createTray() {
   tray.setToolTip('Twitch Live Checker');
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Show', click: () => mainWindow && mainWindow.show() },
+    { label: 'Open Overlay', click: () => overlay && overlay.open() },
     { label: 'Quit', click: () => { quitting = true; app.quit(); } }
   ]));
   tray.on('click', () => mainWindow && mainWindow.show());
@@ -186,6 +212,12 @@ app.whenReady().then(async () => {
   }
   await createWindow();
   createTray();
+  // Bring the stream overlay back automatically if the user asked for that
+  // (and setup has been finished, so there is something to show).
+  if (config && overlay) {
+    const settings = config.getSettings();
+    if (settings.setupComplete && settings.overlayAutoOpen) overlay.open();
+  }
 });
 
 app.on('before-quit', () => {
