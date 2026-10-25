@@ -1,152 +1,146 @@
 # Twitch Live Checker
 
-Ever wish you didn't have to keep checking Twitch to see if your favorite streamers are live? This app does it for you.
+A Windows desktop dashboard that shows which of your favorite Twitch streamers are live right now, alerts you when someone goes live, automatically gives them a shoutout in your chat, and lets you know when someone chats in your channel while it's quiet.
 
-Twitch Live Checker sits quietly on your desktop and keeps an eye on a list of streamers you choose. It shows you who's live right now, what they're playing, and how many people are watching — and it can even post a shoutout for them in your own chat the moment they go live, so you never miss the chance to support someone.
+Everything runs on your own computer. There is no account to create with this app, no server, and no tracking: it talks only to Twitch, using a Twitch app that **you** register (free, takes a couple of minutes).
 
-![Dashboard](docs/dashboard-sample.png)
+## Features
 
-*(The names above are just samples — your dashboard will show whichever streamers you add.)*
+- **Live dashboard:** a card for each streamer with live/offline status, stream title and viewer count. Optionally hide offline streamers.
+- **Live alert sound:** a chime when someone goes live. Use the built-in chime or choose your own MP3, WAV or OGG file, with a volume slider.
+- **VIP streamers:** star favorites to highlight their cards, and manage the list in the VIP editor.
+- **Auto-shoutout:** when a tracked streamer goes live, the app posts a message like `!so streamername` in your chat. A **Resend All Shoutouts** button sends one for everyone currently live. Send as your own account or a separate bot account.
+- **Chat alerts:** a sound when someone chats in your channel, with auto-quiet for busy chats. See [Chat Alerts](#chat-alerts).
+- **Stream overlay:** a compact, auto-scrolling list of who's live in its own window, made for OBS. See [Stream overlay](#stream-overlay).
+- **Themes:** dark or light, with color presets and a custom accent color.
+- **Streamer list tools:** add streamers by username or `twitch.tv` link (one per line, checked against Twitch), remove them, and import or export the list as a text file.
+- **Auto-refresh:** every 1, 5, 10, 15, 30 or 60 minutes, or press Refresh any time.
+- **Tray icon:** closing the window keeps the app running in the system tray.
+- **First-run setup wizard** that walks you through everything below.
 
-## What it does
+## Install
 
-- **See who's live at a glance** — title, viewer count, and live/offline status for everyone on your list
-- **Star your favorites** so they're always sorted to the top
-- **Get a sound alert** the moment someone goes live — use the built-in chime or pick your own sound
-- **Auto-refreshes** on whatever schedule you like (every minute up to once an hour)
-- **Automatic shoutouts** — say `!so username` in your own chat the instant someone you follow goes live, no need to remember or type it yourself
-- **Make it yours** — light or dark mode, plus your choice of accent color
-- Add streamers just by pasting their name or their `twitch.tv/` link
-- Everything runs on your own computer, using your own Twitch login — nothing about your setup is sent anywhere else
+1. Download the latest installer, `Twitch Live Checker Setup <version>.exe`, from the [Releases](../../releases) page and run it.
+2. Windows may show a SmartScreen warning because the installer isn't code-signed. Choose **More info → Run anyway**.
+3. Follow the setup wizard on first launch. You'll need the Twitch app credentials from the next section.
 
-## Installing it
+## Set up your Twitch app
 
-The easiest way to get started:
+The app needs a Twitch "application" of your own so that Twitch knows who is asking for stream information. Your credentials never leave your computer.
 
-1. Look for **Releases** on the right-hand side of this page (or go to the repo's `/releases` URL) and open the latest one. Download the file that looks like `Twitch Live Checker Setup.exe` — it's a separate download from the source code above it, and it's normal for it to be around 100 MB
-2. Run it and follow the prompts — it installs like any normal Windows program
-3. **Windows may show a blue "Windows protected your PC" warning.** This happens because the app isn't signed with an expensive commercial certificate, not because anything is wrong. Click **More info**, then **Run anyway**.
-4. When it opens for the first time, a short setup screen will walk you through everything else — see below
-
-That's it — no need to install Node.js, git, or anything technical. That stuff is only for people who want to look at or modify the code itself (see [Running it from the source code](#running-it-from-the-source-code) below).
-
-## Setting it up
-
-The first time you open the app, it'll ask you to connect it to Twitch. This is a one-time thing.
-
-### 1. Create your own Twitch connection
-
-Because of how Twitch works, every copy of this app needs its own set of "keys" to talk to Twitch — think of it like registering the app so Twitch knows who's asking for data. This sounds technical, but it only takes a minute:
-
-1. Go to **dev.twitch.tv/console** and log in with your normal Twitch account
-2. Click **Register Your Application**
+1. Go to the [Twitch developer console](https://dev.twitch.tv/console) and sign in. Twitch requires two-factor authentication to be turned on for your account before you can register an app.
+2. Click **Register Your Application**.
 3. Fill in the form:
-   - **Name:** anything you like, as long as it's not already taken and doesn't contain the word "twitch" — e.g. `MyName Live Checker`
-   - **OAuth Redirect URLs:** type exactly `http://localhost:3000`
+   - **Name:** anything unique (Twitch doesn't allow names containing "Twitch").
+   - **OAuth Redirect URLs:** `http://localhost:3000`
    - **Category:** Application Integration
    - **Client Type:** Confidential
-4. Click **Create**, open the application you just made, and click **New Secret**
-5. You'll now see a **Client ID** and a **Client Secret** — keep this page open, you'll need to copy both into the app in the next step
+4. Click **Create**, then **Manage** on your new app.
+5. Copy the **Client ID**, and click **New Secret** to generate a **Client Secret**.
+6. Paste both into the setup wizard (or later in **Settings → Twitch App Credentials**).
 
-Treat the Client Secret like a password. Don't share it with anyone or post it anywhere.
+**Is it safe?** The Client Secret is encrypted with your operating system's credential protection and stored in your Windows user profile, never in the project folder and never sent anywhere except to Twitch. The app's small internal web server only accepts connections from your own computer and requires a random key generated each time the app starts.
 
-### 2. Follow the in-app setup
+## Log in with Twitch
 
-Back in the app, the setup screen will ask you for:
+Auto-shoutouts and chat alerts need to know which channel is yours. Click **Log in with Twitch** in the wizard or in **Settings → Automatic Shoutouts**. Your browser opens, you approve the permissions, and the app remembers the login (encrypted). Port 3000 must be free for a moment while you log in.
 
-- The **Client ID** and **Client Secret** you just created
-- Whether you want **automatic shoutouts** — if yes, you'll click a button to log in with Twitch (just approve it in your browser, nothing to copy or paste), and you can set the exact message it posts
-- A few streamers to start tracking, if you'd like (you can always add more later)
+The permissions requested are:
 
-Once you finish, you're in the dashboard and ready to go. Anything from this setup screen can be changed later from **Settings**.
+| Permission | Why |
+| --- | --- |
+| `user:write:chat` | Send the shoutout message in chat |
+| `channel:bot` | Allows a separate bot account to send messages in your channel, if you choose that option |
 
-### Matching your existing shoutout command
+Chat alerts need **no extra permission**: they read your chat the same way a logged-out viewer does.
 
-If you already use a chat bot like StreamElements or Nightbot with your own `!so` command, just make sure the shoutout message in this app's Settings matches what your bot expects — that way the automatic shoutout triggers your bot exactly the way typing it yourself would.
+## Auto-shoutouts
 
-### Using a separate bot account (optional)
+The app sends a chat message when a tracked streamer goes live, once per streamer per live session. It checks every minute.
 
-By default, shoutouts post from your own account. If you'd rather have a separate bot account send them instead, there's a dropdown for that in Settings — pick "A separate bot account," log it in the same simple way, and you're set. Your own account automatically gives that bot permission to post in your channel, so there's no extra step.
+- **Message:** set it in **Settings → Automatic Shoutouts**. The default is `!so {username}`, where `{username}` is replaced by the streamer's name.
+- **The app only sends the message.** Your chat bot (StreamElements, Nightbot, etc.) is what turns `!so` into a shoutout, so the message must match a command you've set up there:
+  - **StreamElements:** Custom Commands → Add New Command, name it `so`, response for example `Go check out ${touser} at https://twitch.tv/${touser}`
+  - **Nightbot:** `!commands add !so Go check out $(touser) at https://twitch.tv/$(touser)`
+- **Who sends it:** by default, your own account. To use a separate bot account, choose **A separate bot account** in Settings and click **Log in Bot Account**. Do this in a browser that is signed in to the bot account (a private window works well). Chat bots generally ignore their own messages, so the sending account should not be the same account your StreamElements or Nightbot bot runs on. If your command is restricted to moderators, make the sending account a moderator or lower the command's access level.
+- **Turn it off** with the Automatic Shoutouts checkbox, or resend manually with **Resend All Shoutouts**.
 
-## Making it yours
+## Chat Alerts
 
-Both of these live in **Settings**, and both are remembered the next time you open the app.
+Plays a sound when someone chats in your channel, so you don't miss a message when chat is quiet. Let it stay quiet automatically, or switch it off, when chat is busy.
 
-![Settings](docs/settings-sample.png)
+### Turning it on
+- Click **Chat Alerts** in the header, press the keyboard shortcut (default **Ctrl+Alt+C**, works even while the window is hidden in the tray), or use the tray menu.
+- You need to be logged in with **Log in with Twitch** so the app knows which channel is yours.
+- While it's on, the header shows when chat was last active, and briefly shows who just wrote.
 
-### Choosing your own alert sound
+### Settings (Settings → Chat Alerts)
 
-The app comes with a built-in chime, but you can use any sound you like:
+| Setting | What it does |
+| --- | --- |
+| Quiet minutes | Only alert after chat has been silent this long, so a busy chat doesn't spam you but the first message after a lull always gets through. `0` alerts on every message. Default: 3. |
+| Alert limit | At most one alert every this many seconds. `0` = no limit. Default: 5. |
+| Keyboard shortcut | Click the field, then press the keys (needs Ctrl, Alt or the Windows key). Escape leaves it unchanged. |
+| Ignore list | Accounts that never trigger an alert, such as your chat bots, one per line. Empty by default. Your own messages are always ignored. |
+| Chat alert sound | Built-in chime, or choose your own MP3, WAV or OGG (up to 2 MB), with volume and a test button. Separate from the live alert sound. |
 
-1. Open **Settings** and find **Live Alert Sound**
-2. Click **Choose Sound File** and pick an MP3, WAV, or OGG file (up to 2 MB — short and sweet works best)
-3. It plays right away so you can hear what you picked. Use **Play Test** any time, and the **Volume** slider to set how loud it is
-4. Changed your mind? **Use Built-in Chime** puts the original back
+### Privacy and how it works
+- It reads your channel's chat **anonymously and read-only**, like a logged-out viewer. It uses no extra Twitch permissions and cannot send messages.
+- It only connects while Chat Alerts is **on**. Chat messages are never saved or logged; only the sender's name is used, briefly, to show "New chat from ...".
+- If the connection drops it reconnects by itself.
 
-A few things worth knowing:
+## Stream overlay
 
-- The app keeps its own copy of your sound, so it's fine to move or delete the original file afterward
-- If your file ever can't be played, the built-in chime plays instead, so you won't miss an alert
-- To turn alerts off completely, uncheck **Play Live Alert Sound**
+A compact list of who's live that scrolls in its own window, sized for a narrow slot in your scene.
 
-### Changing the colors
+1. Open it from **Settings → Stream Overlay → Open Overlay Window** (or the tray menu).
+2. In OBS, add a **Window Capture** source and choose **Live Checker Overlay**.
+3. Adjust scroll speed, stream title display, viewer counts, and whether the window stays on top. Choose **Solid green** as the background if you'd rather use a Chroma Key filter in OBS.
 
-Don't love the default purple? Under **Accent Color** you can:
+The overlay can also open automatically when the app starts.
 
-- Tap one of the preset colors, or pick any color you like with **Custom color**
-- Go back to the original with **Reset to Default**
+## Your data
 
-The accent color is used for buttons, headings, and highlights. It works with **Light Theme** too, and button text switches between light and dark automatically so it stays easy to read. The red/gray live and offline badges keep their colors so they always mean the same thing. If you pick a custom color that would blend into the background, the app will ask you to try a different one.
+Settings and secrets are stored in your Windows user profile (in the app-data folder, in a `config` folder), never in the program folder:
 
-## Your privacy
+- `settings.json`: ordinary preferences, your streamer and VIP lists, your Client ID
+- `secrets.json`: your Client Secret and login tokens, encrypted with Windows credential protection
 
-Everything you set up — your Twitch keys, your streamer list, your login, your custom alert sound — stays on your own computer. None of it is sent to me or anyone else. Your login and secret key are also encrypted using your Windows account's own built-in protection, the same kind of security Windows uses to protect your other saved passwords.
+Uninstalling the app does not delete these. Delete the `config` folder if you want everything gone. Custom sound files you choose are copied there too, so the originals can be moved or deleted freely.
 
-## Running it from the source code
+## Troubleshooting
 
-If you're comfortable with code and want to run this from the source files instead of the installer, or make your own changes:
+- **"A login attempt is already in progress" or the login page doesn't load:** something else is using port 3000, or a previous login window is still open. Close it and try again.
+- **"Secure storage is not available":** Windows credential protection wasn't available, so the secret wasn't saved. Make sure you're signed in to a normal Windows user account.
+- **Shoutouts aren't appearing:** check you're logged in (Settings → Automatic Shoutouts), the message matches your bot's command, and the sending account is allowed to use it.
+- **Chat alerts: "Log in with Twitch in Settings to start":** log in first; it starts on its own afterwards.
+- **Chat alerts: shortcut doesn't work:** another program may be using it. The header says so; pick a different combination in Settings.
+- **No sound:** use **Play Test** in Settings, and check the volume slider and your computer's sound output.
 
-```bash
-git clone <this-repo-url>
-cd twitch-live-checker
+## For developers
+
+Requires [Node.js](https://nodejs.org) (current LTS).
+
+```
 npm install
-npm start
+npm start        # run the app
+npm test         # run the test suite (node --test)
+npm run build    # build the Windows installer into dist/
 ```
 
-Node.js 18 or later is required for this.
-
-### Building your own installer
-
-```bash
-npm run build
+```
+main.js            Electron main process: windows, tray, timers, wiring
+preload.js         the small, explicit bridge between the app and its pages
+src/               settings and encrypted storage, Twitch API client, login flow,
+                   shoutout engine, local server, sounds, overlay window,
+                   chat listener, chat alert rules and service
+public/            dashboard, setup wizard and overlay pages (plain HTML, CSS, JS),
+                   plus sounds and icons
+test/              automated tests
 ```
 
-This creates a Windows installer in a new `dist` folder, using a tool called electron-builder.
-
-### Running the tests
-
-```bash
-npm test
-```
-
-This runs the project's automated checks to make sure nothing's broken.
-
-### How the project is organized
-
-```
-twitch-live-checker/
-├─ main.js              App startup, window, and tray icon
-├─ preload.js           Safe bridge between the app's UI and the system
-├─ src/                 The app's inner workings (Twitch connection, login, settings, shoutouts)
-├─ public/              Everything you see on screen (dashboard, setup screen, icons, sound)
-├─ test/                Automated tests
-└─ docs/                Sample screenshots used in this README
-```
+The code is written so the Twitch connection, storage and timers can be replaced by fakes in tests, so the whole suite runs without Electron, a network or real credentials.
 
 ## License
 
-MIT — see LICENSE.
-
-## Contributing
-
-Issues and pull requests are welcome! If you're reporting a problem, please double check that any screenshots or logs don't include your real Twitch username, login tokens, or keys.
+MIT
