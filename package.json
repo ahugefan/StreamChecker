@@ -1,6 +1,6 @@
 {
   "name": "twitch-live-checker",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Desktop dashboard that tracks which Twitch streamers are live, alerts you, and can auto-shoutout them in your chat.",
   "main": "main.js",
   "scripts": {

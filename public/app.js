@@ -156,6 +156,8 @@ function applySettingsToUI() {
   updateThemeUI();
   updateOverlayUI();
   updateSoundUI();
+  updateChatAlertSettingsUI();
+  updateChatSoundUI();
   renderVipList();
 }
 
@@ -625,6 +627,242 @@ resendShoutoutsBtn.addEventListener('click', async () => {
   }
 });
 
+// --- Chat alerts ---
+// The chat listener runs in the main process (so it keeps working while this
+// window is hidden in the tray); this page only shows its state and changes
+// its settings.
+
+const chatAlertBtn = el('chatAlertBtn');
+const chatAlertStatus = el('chatAlertStatus');
+const toggleChatAlerts = el('toggleChatAlerts');
+const chatQuietMinutes = el('chatQuietMinutes');
+const chatCooldownSeconds = el('chatCooldownSeconds');
+const chatHotkeyInput = el('chatHotkeyInput');
+const clearChatHotkeyBtn = el('clearChatHotkeyBtn');
+const chatIgnoreInput = el('chatIgnoreInput');
+const saveChatAlertBtn = el('saveChatAlertBtn');
+const chatAlertSettingsStatus = el('chatAlertSettingsStatus');
+
+let chatAlertState = null;
+let chatAlertFlash = '';       // "New chat from ..." shown briefly after an alert
+let chatAlertFlashTimer = null;
+let pendingChatHotkey = ''; // the shortcut shown in the field; saved with the Save button
+
+function describeChatAlertState(state) {
+  if (!state.enabled) return '';
+  if (!state.canListen) return 'Log in with Twitch in Settings to start.';
+  if (state.status === 'connected') {
+    const ago = AlertPlayer.formatAgo(state.lastActivityAt ? Date.now() - state.lastActivityAt : NaN);
+    return ago ? `Listening to chat - last chat ${ago}` : 'Listening to chat - no chat yet';
+  }
+  if (state.status === 'reconnecting') return 'Reconnecting...';
+  return 'Connecting...';
+}
+
+function renderChatAlertState(state) {
+  if (!state) return;
+  chatAlertState = state;
+  chatAlertBtn.textContent = state.enabled ? '🔔 Chat Alerts: On' : '🔕 Chat Alerts: Off';
+  chatAlertBtn.setAttribute('aria-pressed', String(state.enabled));
+  chatAlertBtn.classList.toggle('active', state.enabled);
+  chatAlertBtn.title = state.hotkeyActive
+    ? `Turn chat alerts on or off (shortcut: ${HotkeyUtil.displayName(state.hotkey)})`
+    : 'Turn chat alerts on or off';
+  chatAlertStatus.textContent = [chatAlertFlash || describeChatAlertState(state), state.hotkeyError]
+    .filter(Boolean).join(' ');
+  toggleChatAlerts.checked = state.enabled;
+}
+
+function updateChatAlertSettingsUI() {
+  chatQuietMinutes.value = String(settings.chatAlertQuietMinutes);
+  chatCooldownSeconds.value = String(settings.chatAlertCooldownSeconds);
+  pendingChatHotkey = settings.chatAlertHotkey;
+  chatHotkeyInput.value = HotkeyUtil.displayName(pendingChatHotkey);
+  chatIgnoreInput.value = settings.chatAlertIgnore.join('\n');
+}
+
+function numberFrom(input) {
+  const text = input.value.trim();
+  return text === '' ? NaN : Number(text);
+}
+
+chatAlertBtn.addEventListener('click', async () => {
+  if (!window.chatAlertAPI) return;
+  try {
+    renderChatAlertState(await window.chatAlertAPI.toggle());
+  } catch (err) {
+    showBanner(err.message);
+  }
+});
+
+toggleChatAlerts.addEventListener('change', async () => {
+  if (!window.chatAlertAPI) return;
+  try {
+    renderChatAlertState(await window.chatAlertAPI.setEnabled(toggleChatAlerts.checked));
+  } catch (err) {
+    chatAlertSettingsStatus.textContent = err.message;
+  }
+});
+
+// Click the field, then press the keys you want (Escape leaves it unchanged).
+chatHotkeyInput.addEventListener('keydown', (e) => {
+  e.preventDefault();
+  const result = HotkeyUtil.fromKeyEvent(e);
+  if (!result) return; // only a modifier so far
+  if (result.cancel) { chatHotkeyInput.blur(); return; }
+  if (result.error) { chatAlertSettingsStatus.textContent = result.error; return; }
+  pendingChatHotkey = result.accelerator;
+  chatHotkeyInput.value = HotkeyUtil.displayName(pendingChatHotkey);
+  chatAlertSettingsStatus.textContent = 'Shortcut chosen. Press Save to keep it.';
+});
+
+clearChatHotkeyBtn.addEventListener('click', () => {
+  pendingChatHotkey = '';
+  chatHotkeyInput.value = '';
+  chatAlertSettingsStatus.textContent = 'Shortcut cleared. Press Save to keep that.';
+});
+
+saveChatAlertBtn.addEventListener('click', async () => {
+  const quiet = numberFrom(chatQuietMinutes);
+  const cooldown = numberFrom(chatCooldownSeconds);
+  if (Number.isNaN(quiet) || Number.isNaN(cooldown)) {
+    chatAlertSettingsStatus.textContent = 'Please enter whole numbers for the minutes and seconds.';
+    return;
+  }
+  try {
+    await saveSetting({
+      chatAlertQuietMinutes: quiet,
+      chatAlertCooldownSeconds: cooldown,
+      chatAlertHotkey: pendingChatHotkey,
+      chatAlertIgnore: chatIgnoreInput.value.split(/\r?\n/)
+    });
+    updateChatAlertSettingsUI(); // show the cleaned-up values that were actually saved
+    if (window.chatAlertAPI) renderChatAlertState(await window.chatAlertAPI.refresh());
+    chatAlertSettingsStatus.textContent = (chatAlertState && chatAlertState.hotkeyError) || 'Saved.';
+  } catch (err) {
+    chatAlertSettingsStatus.textContent = err.message;
+  }
+});
+
+async function refreshChatAlertState() {
+  if (!window.chatAlertAPI) return;
+  try {
+    renderChatAlertState(await window.chatAlertAPI.getState());
+  } catch { /* keep showing what we have */ }
+}
+
+// --- Chat alert sound ---
+
+const chatSoundCurrent = el('chatSoundCurrent');
+const chooseChatSoundBtn = el('chooseChatSoundBtn');
+const testChatSoundBtn = el('testChatSoundBtn');
+const resetChatSoundBtn = el('resetChatSoundBtn');
+const chatSoundVolume = el('chatSoundVolume');
+const chatSoundVolumeLabel = el('chatSoundVolumeLabel');
+const chatSoundStatus = el('chatSoundStatus');
+
+const chatPlayer = AlertPlayer.createAlertPlayer({
+  defaultUrl: 'chat-chime.wav',
+  getVolume: () => (settings ? settings.chatSoundVolume : 100),
+  getCustom: () => window.chatSoundAPI.getCustom(),
+  makeUrl: (data) => URL.createObjectURL(new Blob([data.bytes], { type: data.mime })),
+  revokeUrl: (url) => URL.revokeObjectURL(url),
+  AudioImpl: Audio
+});
+
+function updateChatSoundUI() {
+  const custom = Boolean(settings.chatSoundFile);
+  chatSoundCurrent.textContent = custom
+    ? `Using your sound: ${settings.chatSoundLabel || settings.chatSoundFile}`
+    : 'Using the built-in chat chime.';
+  resetChatSoundBtn.hidden = !custom;
+  chatSoundVolume.value = String(settings.chatSoundVolume);
+  chatSoundVolumeLabel.textContent = `${settings.chatSoundVolume}%`;
+}
+
+chooseChatSoundBtn.addEventListener('click', async () => {
+  if (!window.chatSoundAPI) return;
+  try {
+    const result = await window.chatSoundAPI.choose();
+    if (!result) return; // the file picker was closed
+    if (!result.ok) { chatSoundStatus.textContent = result.error; return; }
+    settings.chatSoundFile = result.soundFile;
+    settings.chatSoundLabel = result.soundLabel;
+    await chatPlayer.load(true);
+    const outcome = await chatPlayer.play(); // doubles as a preview
+    if (outcome === 'fallback') {
+      // The file saved fine but this computer cannot play it, so don't keep it.
+      await window.chatSoundAPI.reset();
+      settings.chatSoundFile = '';
+      settings.chatSoundLabel = '';
+      chatSoundStatus.textContent = "That file couldn't be played, so the built-in chime will be used.";
+    } else if (outcome === 'ok') {
+      chatSoundStatus.textContent = 'Sound set. That was a preview.';
+    } else {
+      chatSoundStatus.textContent = "Sound set, but nothing could be played just now. Check your computer's sound output.";
+    }
+    updateChatSoundUI();
+  } catch (err) {
+    chatSoundStatus.textContent = err.message;
+  }
+});
+
+testChatSoundBtn.addEventListener('click', async () => {
+  const outcome = await chatPlayer.play();
+  chatSoundStatus.textContent = outcome === 'failed'
+    ? "Nothing could be played. Check your computer's sound output."
+    : '';
+});
+
+resetChatSoundBtn.addEventListener('click', async () => {
+  if (!window.chatSoundAPI) return;
+  try {
+    await window.chatSoundAPI.reset();
+    settings.chatSoundFile = '';
+    settings.chatSoundLabel = '';
+    await chatPlayer.load(false);
+    updateChatSoundUI();
+    chatSoundStatus.textContent = 'Using the built-in chime.';
+  } catch (err) {
+    chatSoundStatus.textContent = err.message;
+  }
+});
+
+chatSoundVolume.addEventListener('input', () => {
+  chatSoundVolumeLabel.textContent = `${chatSoundVolume.value}%`;
+});
+
+chatSoundVolume.addEventListener('change', async () => {
+  try {
+    await saveSetting({ chatSoundVolume: Number(chatSoundVolume.value) });
+    await chatPlayer.play(); // hear the new level
+  } catch (err) {
+    chatSoundStatus.textContent = err.message;
+  }
+});
+
+// --- A chat message should make a sound ---
+
+function handleChatAlert(alert) {
+  chatPlayer.play();
+  const who = alert && alert.displayName ? alert.displayName : 'someone';
+  chatAlertFlash = `💬 New chat from ${who}`;
+  clearTimeout(chatAlertFlashTimer);
+  chatAlertFlashTimer = setTimeout(() => { chatAlertFlash = ''; refreshChatAlertState(); }, 8000);
+  refreshChatAlertState();
+}
+
+async function initChatAlerts() {
+  if (!window.chatAlertAPI) { chatAlertBtn.hidden = true; return; }
+  window.chatAlertAPI.onState(renderChatAlertState);
+  window.chatAlertAPI.onAlert(handleChatAlert);
+  try {
+    await chatPlayer.load(Boolean(settings.chatSoundFile));
+  } catch { /* the built-in chime is used */ }
+  await refreshChatAlertState();
+  setInterval(refreshChatAlertState, 10_000); // keeps "last chat ... ago" fresh
+}
+
 async function init() {
   const info = await window.serverAPI.getInfo();
   if (!info) {
@@ -647,6 +885,7 @@ async function init() {
   shoutoutTemplateInput.value = settings.shoutoutTemplate;
   updateAccountRows();
   await refreshLoginStatuses();
+  await initChatAlerts();
   await refresh();
   restartAutoRefresh();
 }

@@ -24,6 +24,8 @@
         </div>
       </div>
       <div class="actions">
+        <span id="chatAlertStatus" class="hint chat-alert-status"></span>
+        <button id="chatAlertBtn" aria-pressed="false" title="Turn chat alerts on or off">🔕 Chat Alerts: Off</button>
         <button id="resendShoutoutsBtn" title="Send a shoutout for every streamer currently live">Resend All Shoutouts</button>
         <button id="refreshBtn">Refresh</button>
         <button id="settingsBtn">Settings</button>
@@ -124,6 +126,46 @@
         <p id="soundStatus" class="hint"></p>
       </div>
 
+      <div class="credentials-box">
+        <h3>Chat Alerts</h3>
+        <p class="hint">Plays a sound when someone chats in your channel, so you don't miss a message when chat is quiet. It listens to your chat read-only and needs no extra login beyond Log in with Twitch above.</p>
+
+        <label class="toggle">
+          <input type="checkbox" id="toggleChatAlerts">
+          <span>Alert me when someone chats</span>
+        </label>
+
+        <label class="field-label">Only alert after chat has been quiet for this many minutes (0 = alert on every message)
+          <input type="number" id="chatQuietMinutes" min="0" max="120" step="1">
+        </label>
+        <label class="field-label">At most one alert every this many seconds (0 = no limit)
+          <input type="number" id="chatCooldownSeconds" min="0" max="600" step="1">
+        </label>
+
+        <label class="field">Keyboard shortcut to turn alerts on/off (click, then press the keys)
+          <input type="text" id="chatHotkeyInput" readonly placeholder="No shortcut">
+        </label>
+        <button id="clearChatHotkeyBtn" class="file-btn" type="button">Clear Shortcut</button>
+
+        <label class="field">Never alert for these accounts (one per line, e.g. your chat bots)
+          <textarea id="chatIgnoreInput" placeholder="nightbot&#10;streamelements"></textarea>
+        </label>
+
+        <button id="saveChatAlertBtn" class="file-btn" type="button">Save Chat Alert Settings</button>
+        <p id="chatAlertSettingsStatus" class="hint"></p>
+
+        <h3>Chat Alert Sound</h3>
+        <p id="chatSoundCurrent" class="hint">Using the built-in chat chime.</p>
+        <button id="chooseChatSoundBtn" class="file-btn" type="button">Choose Sound File</button>
+        <button id="testChatSoundBtn" class="file-btn" type="button">Play Test</button>
+        <button id="resetChatSoundBtn" class="file-btn" type="button" hidden>Use Built-in Chime</button>
+        <label class="field-label">Volume: <span id="chatSoundVolumeLabel">100%</span>
+          <input id="chatSoundVolume" type="range" min="0" max="100" step="5" value="100" style="width:100%">
+        </label>
+        <p class="hint">MP3, WAV or OGG, up to 2 MB. This is separate from the live alert sound, and the built-in chime is used if your file can't be played.</p>
+        <p id="chatSoundStatus" class="hint"></p>
+      </div>
+
       <label class="toggle">
         <input type="checkbox" id="toggleTheme">
         <span>Light Theme</span>
@@ -213,6 +255,8 @@
 
   <div id="settingsOverlay" class="settings-overlay"></div>
 
+  <script src="hotkey-capture.js"></script>
+  <script src="alert-player.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

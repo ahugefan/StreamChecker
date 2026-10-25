@@ -40,6 +40,14 @@ const DEFAULTS = Object.freeze({
   showOffline: true,
   autoShoutout: true,
   shoutoutTemplate: '!so {username}',
+  chatAlertEnabled: false,     // alert when someone chats in the user's channel (off until turned on)
+  chatAlertQuietMinutes: 3,    // only alert after this many minutes of chat silence; 0 = alert on every message
+  chatAlertCooldownSeconds: 5, // at most one alert per this many seconds; 0 = no limit
+  chatAlertIgnore: [],         // chat accounts that never trigger an alert (bots)
+  chatAlertHotkey: 'CommandOrControl+Alt+C', // global shortcut that turns chat alerts on/off; '' = none
+  chatSoundFile: '',           // '' = built-in chime; otherwise custom-chat-sound.<ext> in the config folder
+  chatSoundLabel: '',          // original file name of the custom chat sound (display only)
+  chatSoundVolume: 100,        // 0-100
   setupComplete: false
 });
 
@@ -142,8 +150,69 @@ const RULES = {
     if (!t.includes('{username}')) throw new Error('Shoutout message must include {username}');
     if (t.length > 200) throw new Error('Shoutout message is too long (200 characters max)');
     return t;
+  },
+  chatAlertEnabled: bool('chatAlertEnabled'),
+  chatAlertQuietMinutes: wholeNumber('chatAlertQuietMinutes', 0, 120),
+  chatAlertCooldownSeconds: wholeNumber('chatAlertCooldownSeconds', 0, 600),
+  chatAlertIgnore: v => {
+    if (!Array.isArray(v)) throw new Error('chatAlertIgnore must be a list');
+    const logins = parseStreamerInput(v.join('\n')).valid;
+    if (logins.length > MAX_IGNORED_CHATTERS) {
+      throw new Error(`The ignore list can hold at most ${MAX_IGNORED_CHATTERS} accounts`);
+    }
+    return logins;
+  },
+  chatAlertHotkey: v => {
+    if (typeof v !== 'string') throw new Error('The shortcut must be text');
+    const accelerator = v.trim();
+    if (accelerator !== '' && !isValidHotkey(accelerator)) {
+      throw new Error('The shortcut must be one or more modifier keys plus a key, like CommandOrControl+Alt+C');
+    }
+    return accelerator;
+  },
+  chatSoundFile: v => {
+    if (v === '') return '';
+    if (typeof v !== 'string' || !/^custom-chat-sound\.(mp3|wav|ogg)$/.test(v)) {
+      throw new Error('chatSoundFile must be empty or a custom-chat-sound file');
+    }
+    return v;
   }
 };
+// The chat alert sound follows exactly the same rules as the live alert sound.
+RULES.chatSoundLabel = RULES.soundLabel;
+RULES.chatSoundVolume = RULES.soundVolume;
+
+const MAX_IGNORED_CHATTERS = 200;
+
+// Electron's global-shortcut format: modifiers and a key joined by "+".
+// At least one modifier other than Shift is required, because a shortcut of
+// a bare key (or Shift + key) would hijack normal typing in every program.
+const HOTKEY_MODIFIERS = new Set([
+  'command', 'cmd', 'control', 'ctrl', 'commandorcontrol', 'cmdorctrl',
+  'alt', 'option', 'altgr', 'shift', 'super', 'meta'
+]);
+const HOTKEY_KEY = /^(?:[a-z0-9]|f(?:[1-9]|1\d|2[0-4])|space|tab|backspace|delete|insert|return|enter|up|down|left|right|home|end|pageup|pagedown|escape|esc|plus)$/i;
+
+function isValidHotkey(accelerator) {
+  const parts = accelerator.split('+');
+  if (parts.length < 2) return false;
+  const key = parts[parts.length - 1];
+  const modifiers = parts.slice(0, -1).map(m => m.toLowerCase());
+  if (!HOTKEY_KEY.test(key)) return false;
+  if (!modifiers.every(m => HOTKEY_MODIFIERS.has(m))) return false;
+  if (new Set(modifiers).size !== modifiers.length) return false;
+  return modifiers.some(m => m !== 'shift');
+}
+
+function wholeNumber(name, min, max) {
+  return v => {
+    const n = Number(v);
+    if (v === '' || v === null || !Number.isInteger(n) || n < min || n > max) {
+      throw new Error(`${name} must be a whole number from ${min} to ${max}`);
+    }
+    return n;
+  };
+}
 
 function oneOf(name, choices) {
   return v => {

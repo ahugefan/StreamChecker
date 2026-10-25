@@ -22,6 +22,12 @@ contextBridge.exposeInMainWorld('soundAPI', {
   reset: () => ipcRenderer.invoke('reset-sound')
 });
 
+contextBridge.exposeInMainWorld('chatSoundAPI', {
+  choose: () => ipcRenderer.invoke('choose-chat-sound-file'),
+  getCustom: () => ipcRenderer.invoke('get-custom-chat-sound'),
+  reset: () => ipcRenderer.invoke('reset-chat-sound')
+});
+
 contextBridge.exposeInMainWorld('overlayAPI', {
   open: () => ipcRenderer.invoke('overlay-open'),
   close: () => ipcRenderer.invoke('overlay-close'),
@@ -29,6 +35,18 @@ contextBridge.exposeInMainWorld('overlayAPI', {
   setAlwaysOnTop: (flag) => ipcRenderer.invoke('overlay-set-always-on-top', Boolean(flag)),
   // Called whenever the overlay window opens or closes (including by its own close button).
   onState: (callback) => ipcRenderer.on('overlay-state', (_event, open) => callback(Boolean(open)))
+});
+
+contextBridge.exposeInMainWorld('chatAlertAPI', {
+  getState: () => ipcRenderer.invoke('chat-alert-get-state'),
+  toggle: () => ipcRenderer.invoke('chat-alert-toggle'),
+  setEnabled: (flag) => ipcRenderer.invoke('chat-alert-set-enabled', Boolean(flag)),
+  refresh: () => ipcRenderer.invoke('chat-alert-refresh'),
+  // Called each time a chat message should make a sound: { login, displayName, at }.
+  onAlert: (callback) => ipcRenderer.on('chat-alert', (_event, alert) => callback(alert)),
+  // Called whenever alerts are switched on/off, the connection status changes,
+  // or the shortcut is set/fails (including changes made with the shortcut itself).
+  onState: (callback) => ipcRenderer.on('chat-alert-state', (_event, state) => callback(state))
 });
 
 contextBridge.exposeInMainWorld('electronAPI', {

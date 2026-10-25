@@ -72,17 +72,21 @@ button {
   transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
-#refreshBtn {
+#refreshBtn, #chatAlertBtn.active {
   background: var(--accent); color: var(--on-accent);
   box-shadow: 0 0 0 1px rgb(var(--accent-rgb) / 0.4), 0 10px 25px rgb(var(--accent-rgb) / 0.45);
 }
-#refreshBtn:hover { transform: translateY(-1px); }
+#refreshBtn:hover, #chatAlertBtn.active:hover { transform: translateY(-1px); }
+#chatAlertBtn.active { border-color: transparent; } /* keeps the button the same size On and Off */
 
-#settingsBtn, #resendShoutoutsBtn {
+#settingsBtn, #resendShoutoutsBtn, #chatAlertBtn {
   background: rgba(15, 17, 30, 0.95); color: var(--muted);
   border: 1px solid rgba(55, 65, 81, 0.9);
 }
-#settingsBtn:hover, #resendShoutoutsBtn:hover { background: rgba(31, 35, 55, 0.95); }
+#settingsBtn:hover, #resendShoutoutsBtn:hover, #chatAlertBtn:not(.active):hover { background: rgba(31, 35, 55, 0.95); }
+
+/* The small status text beside the Chat Alerts button ("Listening to chat - ...") */
+.chat-alert-status { align-self: center; max-width: 320px; text-align: right; margin: 0; }
 #resendShoutoutsBtn:disabled { opacity: 0.6; cursor: default; }
 
 .status-banner {
@@ -241,8 +245,8 @@ body.light-theme .card { background: #ffffff; border-color: #ccc; }
 body.light-theme .card.offline { background: #f2f2f2; border-color: #bbb; }
 body.light-theme .status-live { background: rgba(255,0,0,0.15); color: #b30000; }
 body.light-theme .status-offline { background: #ddd; color: #666; }
-body.light-theme #refreshBtn { background: var(--accent); color: var(--on-accent); }
-body.light-theme #settingsBtn, body.light-theme #resendShoutoutsBtn { background: #eee; color: #333; border-color: #ccc; }
+body.light-theme #refreshBtn, body.light-theme #chatAlertBtn.active { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+body.light-theme #settingsBtn, body.light-theme #resendShoutoutsBtn, body.light-theme #chatAlertBtn { background: #eee; color: #333; border-color: #ccc; }
 body.light-theme .settings-panel { background: #ffffff; border-left: 1px solid #ccc; }
 body.light-theme .interval-select, body.light-theme #vipInput, body.light-theme .credentials-box input,
 body.light-theme .streamer-add-section textarea {

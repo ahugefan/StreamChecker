@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, safeStorage, dialog, clipboard, shell, screen } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, safeStorage, dialog, clipboard, shell, screen, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { createConfig } = require('./src/config');
@@ -8,10 +8,19 @@ const { createShoutoutEngine } = require('./src/shoutout-engine');
 const { sendChatMessage } = require('./src/chat');
 const { createServer } = require('./src/server');
 const { runLoginFlow } = require('./src/login-flow');
-const { installSound, readCustomSound, removeCustomSounds } = require('./src/sound');
+const {
+  installSound, readCustomSound, removeCustomSounds,
+  installChatSound, readCustomChatSound, removeCustomChatSounds
+} = require('./src/sound');
 const { createOverlayManager } = require('./src/overlay-window');
+const { createChatListener } = require('./src/chat-listener');
+const { createAlertGate } = require('./src/chat-alert-logic');
+const { createChatAlertService } = require('./src/chat-alert-service');
 
 const SHOUTOUT_CHECK_INTERVAL_MS = 60_000;
+// How often saved chat-alert settings are re-read (edits made in Settings,
+// login and logout all take effect within this long).
+const CHAT_ALERT_REFRESH_MS = 3_000;
 
 let mainWindow = null;
 let tray = null;
@@ -21,6 +30,8 @@ let config = null;
 let loginInProgress = false;
 let shoutoutTimer = null;
 let overlay = null;
+let chatAlerts = null;
+let chatAlertTimer = null;
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -84,6 +95,30 @@ async function startBackend() {
   shoutoutTimer = setInterval(() => {
     shoutoutEngine.runOnce().catch(err => console.error('[shoutout]', err.message));
   }, SHOUTOUT_CHECK_INTERVAL_MS);
+
+  // Chat alerts: listens to the user's own chat (anonymously, read-only) while
+  // switched on, and owns the global on/off shortcut.
+  chatAlerts = createChatAlertService({
+    config,
+    createListener: (handlers) => createChatListener(handlers),
+    createGate: createAlertGate,
+    globalShortcut,
+    onState: (state) => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('chat-alert-state', state);
+      updateTrayTooltip(state);
+    },
+    // The window plays the sound (it stays alive while hidden in the tray).
+    onAlert: (alert) => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('chat-alert', alert);
+    }
+  });
+  chatAlerts.refresh();
+  chatAlertTimer = setInterval(() => chatAlerts.refresh(), CHAT_ALERT_REFRESH_MS);
+}
+
+function updateTrayTooltip(state) {
+  if (!tray) return;
+  tray.setToolTip(state && state.enabled ? 'Twitch Live Checker - chat alerts on' : 'Twitch Live Checker');
 }
 
 // Renderer asks for this once at startup instead of the port/key being
@@ -159,6 +194,54 @@ ipcMain.handle('reset-sound', () => {
   return { ok: true };
 });
 
+// --- Chat alerts ---
+
+ipcMain.handle('chat-alert-get-state', () => (chatAlerts ? chatAlerts.getState() : null));
+ipcMain.handle('chat-alert-toggle', () => (chatAlerts ? chatAlerts.toggle() : null));
+ipcMain.handle('chat-alert-set-enabled', (_event, flag) => (chatAlerts ? chatAlerts.setEnabled(Boolean(flag)) : null));
+// The window calls this right after saving chat-alert settings so they apply
+// immediately instead of on the next timer tick.
+ipcMain.handle('chat-alert-refresh', () => {
+  if (!chatAlerts) return null;
+  chatAlerts.refresh();
+  return chatAlerts.getState();
+});
+
+// --- Custom chat-alert sound ---
+// Same approach as the live alert sound, with its own separate file and settings.
+
+ipcMain.handle('choose-chat-sound-file', async () => {
+  if (!config) return { ok: false, error: 'Settings are not available right now.' };
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Choose Chat Alert Sound',
+    filters: [{ name: 'Sound Files', extensions: ['mp3', 'wav', 'ogg'] }],
+    properties: ['openFile']
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  try {
+    const installed = installChatSound({ sourcePath: result.filePaths[0], dir: config.dir });
+    const updated = config.updateSettings({
+      chatSoundFile: installed.soundFile,
+      chatSoundLabel: installed.soundLabel
+    });
+    return { ok: true, soundFile: updated.chatSoundFile, soundLabel: updated.chatSoundLabel };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle('get-custom-chat-sound', () => {
+  if (!config) return null;
+  return readCustomChatSound({ dir: config.dir, soundFile: config.getSettings().chatSoundFile });
+});
+
+ipcMain.handle('reset-chat-sound', () => {
+  if (!config) return { ok: false };
+  removeCustomChatSounds(config.dir);
+  config.updateSettings({ chatSoundFile: '', chatSoundLabel: '' });
+  return { ok: true };
+});
+
 // --- Stream overlay window ---
 
 ipcMain.handle('overlay-open', () => (overlay ? overlay.open() : false));
@@ -196,9 +279,11 @@ function createTray() {
   const icon = nativeImage.createFromPath(path.join(__dirname, 'public', 'icons', 'tray.png'));
   tray = new Tray(icon);
   tray.setToolTip('Twitch Live Checker');
+  if (chatAlerts) updateTrayTooltip(chatAlerts.getState());
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Show', click: () => mainWindow && mainWindow.show() },
     { label: 'Open Overlay', click: () => overlay && overlay.open() },
+    { label: 'Turn Chat Alerts On/Off', click: () => { if (chatAlerts) chatAlerts.toggle(); } },
     { label: 'Quit', click: () => { quitting = true; app.quit(); } }
   ]));
   tray.on('click', () => mainWindow && mainWindow.show());
@@ -223,4 +308,6 @@ app.whenReady().then(async () => {
 app.on('before-quit', () => {
   quitting = true;
   if (shoutoutTimer) clearInterval(shoutoutTimer);
+  if (chatAlertTimer) clearInterval(chatAlertTimer);
+  if (chatAlerts) chatAlerts.shutdown();
 });
